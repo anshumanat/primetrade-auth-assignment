@@ -14,7 +14,11 @@ Thumbs.db
 
 # Logs
 *.log
+backend/app.log
+backend_logs.txt
+
 
 # IDE
 .vscode/
 .idea/
+

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+import logging
 
 from app.db.session import get_db
 from app.db.models.task import Task
@@ -9,10 +10,13 @@ from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse
 from app.core.dependencies import get_current_user
 
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(
     prefix="/tasks",
     tags=["Tasks"]
 )
+
 
 @router.post("/", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 def create_task(
@@ -31,7 +35,12 @@ def create_task(
     db.commit()
     db.refresh(new_task)
 
+    logger.info(
+        f"Task created | user_id={current_user.id} | task_id={new_task.id}"
+    )
+
     return new_task
+
 
 @router.get("/", response_model=List[TaskResponse])
 def get_tasks(
@@ -62,7 +71,6 @@ def get_task(
             detail="Task not found"
         )
 
-    # If not admin, check ownership
     if current_user.role != "admin" and task.owner_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -88,7 +96,6 @@ def update_task(
             detail="Task not found"
         )
 
-    # Ownership check
     if current_user.role != "admin" and task.owner_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -104,6 +111,10 @@ def update_task(
 
     db.commit()
     db.refresh(task)
+
+    logger.info(
+        f"Task updated | user_id={current_user.id} | task_id={task.id}"
+    )
 
     return task
 
@@ -123,12 +134,15 @@ def delete_task(
             detail="Task not found"
         )
 
-    # Ownership check
     if current_user.role != "admin" and task.owner_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Task not found"
         )
+
+    logger.info(
+        f"Task deleted | user_id={current_user.id} | task_id={task.id}"
+    )
 
     db.delete(task)
     db.commit()
